@@ -6,3 +6,4 @@ export type BlockProps = {
   hash?: string; 
   nonce?: number;
 };
+

@@ -27,3 +27,24 @@ class Block {
     ).toString();
   }
 }
+
+class Blockchain {
+  chain: Block[];
+  constructor() {
+    this.chain = [this.createGenesisBlock()];
+  }
+
+  // Genesis block
+  createGenesisBlock():Block {
+    return new Block({ index: 0, timestamp: new Date(), data: "Initial block of ChainScript", previousHash: "ChainScript soulkka" });
+  }
+
+  getLatestBlock():Block {
+    return this.chain[this.chain.length - 1];
+  }
+
+  addBlock(newBlock:Block) {
+    newBlock.previousHash = this.chain[this.chain.length - 1].hash;
+    this.chain.push(newBlock);
+  }
+}
