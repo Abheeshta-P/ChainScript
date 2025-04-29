@@ -1,10 +1,11 @@
 import { BlockProps } from "../types/index.js";
-import { SHA_256 } from "crypto-js";
+import { createHash } from "crypto";
+
 
 class Block {
   index: number;
-  timestamp: Date;
-  data: string;
+  timestamp: string;
+  data: string | object;
   previousHash: string;
   hash: string;
   nonce: number;
@@ -18,25 +19,27 @@ class Block {
   }
 
   calculateHash(): string{
-    return SHA_256(
-      this.index +
-      this.timestamp.toString() +
-      this.data +
-      this.previousHash +
-      this.nonce
-    ).toString();
+   return createHash("sha256") 
+     .update(
+       this.index +
+         this.timestamp.toString() +
+         this.data +
+         this.previousHash +
+         this.nonce
+     )
+     .digest("hex").toString();
   }
 }
 
 class Blockchain {
-  chain: Block[];
+  private chain: Block[];
   constructor() {
     this.chain = [this.createGenesisBlock()];
   }
 
   // Genesis block
-  createGenesisBlock():Block {
-    return new Block({ index: 0, timestamp: new Date(), data: "Initial block of ChainScript", previousHash: "ChainScript soulkka" });
+  private createGenesisBlock():Block {
+    return new Block({ index: 0, timestamp: new Date().toLocaleString(), data: "Initial block of ChainScript", previousHash: "ChainScript soulkka" });
   }
 
   getLatestBlock():Block {
@@ -48,3 +51,22 @@ class Blockchain {
     this.chain.push(newBlock);
   }
 }
+
+let arikkaCoin = new Blockchain();
+
+arikkaCoin.addBlock(
+  new Block({
+    index: 1,
+    timestamp: new Date().toLocaleString(),
+    data: { message: "Transferred 9-arikka from Abhee to Sarika", amount: 9 },
+  })
+);
+arikkaCoin.addBlock(
+  new Block({
+    index: 2,
+    timestamp: new Date().toLocaleString(),
+    data: { message: "Transferred 25-arikka from Sarika to Abhee", amount: 25 },
+  })
+);
+
+console.log(JSON.stringify(arikkaCoin, null, 4));
