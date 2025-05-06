@@ -1,9 +1,8 @@
 export type BlockProps = {
   index: number;
   timestamp: string;
-  data: string | object;
+  data: any;
   previousHash?: string;
-  hash?: string; 
   nonce?: number;
 };
 

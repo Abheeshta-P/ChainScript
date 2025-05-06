@@ -3,36 +3,36 @@ import { createHash } from "crypto";
 
 
 class Block {
-  index: number;
-  timestamp: string;
-  data: string | object;
+  private index: number;
+  private timestamp: string;
+  private data: any;
   previousHash: string;
   hash: string;
-  nonce: number;
+  private nonce: number;
   constructor(props: BlockProps) {
     this.index = props.index;
-    this.timestamp = props.timestamp;
+    this.timestamp = props.timestamp.toString();
     this.data = props.data;
-    this.previousHash = props.previousHash;
-    this.hash = props.hash || this.calculateHash();
+    this.previousHash = props.previousHash || "";
     this.nonce = props.nonce || 0;
+    this.hash = "";
   }
 
   calculateHash(): string{
-   return createHash("sha256") 
-     .update(
-       this.index +
-         this.timestamp.toString() +
-         this.data +
-         this.previousHash +
-         this.nonce
-     )
-     .digest("hex").toString();
+    return createHash("sha256")
+      .update(
+        this.index +
+        this.timestamp +
+        JSON.stringify(this.data) +
+        this.previousHash +
+        this.nonce
+      )
+      .digest("hex");
   }
 }
 
 class Blockchain {
-  private chain: Block[];
+  chain: Block[]; // private
   constructor() {
     this.chain = [this.createGenesisBlock()];
   }
@@ -48,7 +48,28 @@ class Blockchain {
 
   addBlock(newBlock:Block) {
     newBlock.previousHash = this.chain[this.chain.length - 1].hash;
+    newBlock.hash = newBlock.calculateHash();
     this.chain.push(newBlock);
+  }
+
+  // check validity of the chain
+  isChainValid() {
+    for (let i = 1; i < this.chain.length; i++){
+      const currentBlock = this.chain[i];
+      const previousBlock = this.chain[i - 1];
+
+      // If the data in the block was changed
+      if (currentBlock.hash !== currentBlock.calculateHash()) {
+        return false;
+      }
+
+      // Block integrity in a blockchain
+      if (currentBlock.previousHash !== previousBlock.hash) {
+         return false;
+      }
+
+    }
+    return true;
   }
 }
 
@@ -69,4 +90,12 @@ arikkaCoin.addBlock(
   })
 );
 
+// Blockchain
 console.log(JSON.stringify(arikkaCoin, null, 4));
+// Is the blockchain valid
+console.log(arikkaCoin.isChainValid());
+
+// Cannot change
+arikkaCoin.chain[1].hash = "gjkdjfghkgh";
+arikkaCoin.chain[1].calculateHash();
+console.log(arikkaCoin.isChainValid());
