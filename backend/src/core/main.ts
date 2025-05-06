@@ -29,12 +29,23 @@ class Block {
       )
       .digest("hex");
   }
+
+  // mine block
+  mineBlock(difficulty: number) {
+    while (this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")) {
+      this.nonce++;
+      this.hash = this.calculateHash();
+    }
+    console.log(`Block ${this.index} mined : ` + this.hash);
+  }
 }
 
 class Blockchain {
-  chain: Block[]; // private
-  constructor() {
+  private chain: Block[]; // private
+  difficulty: number;
+  constructor(difficulty: number) {
     this.chain = [this.createGenesisBlock()];
+    this.difficulty = difficulty;
   }
 
   // Genesis block
@@ -48,7 +59,7 @@ class Blockchain {
 
   addBlock(newBlock:Block) {
     newBlock.previousHash = this.chain[this.chain.length - 1].hash;
-    newBlock.hash = newBlock.calculateHash();
+    newBlock.mineBlock(this.difficulty);
     this.chain.push(newBlock);
   }
 
@@ -73,8 +84,8 @@ class Blockchain {
   }
 }
 
-let arikkaCoin = new Blockchain();
-
+let arikkaCoin = new Blockchain(5);
+console.log("Started mining block 1");
 arikkaCoin.addBlock(
   new Block({
     index: 1,
@@ -82,6 +93,7 @@ arikkaCoin.addBlock(
     data: { message: "Transferred 9-arikka from Abhee to Sarika", amount: 9 },
   })
 );
+console.log("Started mining block 2");
 arikkaCoin.addBlock(
   new Block({
     index: 2,
@@ -90,12 +102,14 @@ arikkaCoin.addBlock(
   })
 );
 
+
+/*
 // Blockchain
 console.log(JSON.stringify(arikkaCoin, null, 4));
 // Is the blockchain valid
 console.log(arikkaCoin.isChainValid());
-
 // Cannot change
 arikkaCoin.chain[1].hash = "gjkdjfghkgh";
 arikkaCoin.chain[1].calculateHash();
 console.log(arikkaCoin.isChainValid());
+*/
