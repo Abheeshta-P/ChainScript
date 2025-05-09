@@ -1,163 +1,37 @@
-import { BlockProps } from "../types/index.js";
-import { createHash } from "crypto";
+import pkg from "elliptic";
+const { ec: EC } = pkg;
+import { Transaction, Block, Blockchain } from "./blockchain.js";
 
-type TransactionProps = {
-  fromAddress: string;
-  toAddress: string;
-  amount: number;
-}
+const ec = new EC("secp256k1");
 
-class Transaction {
-  fromAddress: string;
-  toAddress: string;
-  amount: number;
+const myKey = ec.keyFromPrivate(
+  "52bafe98f17149a5804dffdb4b0aa9c0e50b22534453c9a7fa1d8cabf1d08335"
+);
+const myWalletAddress = myKey.getPublic("hex");
 
-  constructor({ fromAddress, toAddress, amount }: TransactionProps) {
-    this.fromAddress = fromAddress;
-    this.toAddress = toAddress;
-    this.amount = amount;
-  }
-}
+let arikkaCoin = new Blockchain(2, 100);
 
-class Block {
-  index = 0;
-  timestamp: string;
-  transactions: any;
-  previousHash: string;
-  hash: string;
-  private nonce: number;
-  constructor(props: BlockProps) {
-    this.index = this.index++;
-    this.timestamp = props.timestamp.toString();
-    this.transactions = props.transactions;
-    this.previousHash = props.previousHash || "";
-    this.nonce = props.nonce || 0;
-    this.hash = "";
-  }
+// Create a transaction and sign it, from the public key
+const tx1 = new Transaction({ fromAddress: myWalletAddress, toAddress: myWalletAddress, amount: 10 });
+tx1.signTransaction(myKey);
+arikkaCoin.addTransaction(tx1);
 
-  calculateHash(): string{
-    return createHash("sha256")
-      .update(
-        this.index +
-        this.timestamp +
-        JSON.stringify(this.transactions) +
-        this.previousHash +
-        this.nonce
-      )
-      .digest("hex");
-  }
-
-  // Mine block
-  mineBlock(difficulty: number) {
-    while (this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")) {
-      this.nonce++;
-      this.hash = this.calculateHash();
-    }
-    console.log(`Block ${this.index} mined : ` + this.hash);
-  }
-}
-
-
-class Blockchain {
-  private chain: Block[]; // private
-  difficulty: number;
-  pendingTransactions: any[];
-  miningReward: number;
-
-  constructor(difficulty: number, miningReward: number) {
-    this.chain = [this.createGenesisBlock()];
-    this.difficulty = difficulty;
-    this.pendingTransactions = [];
-    this.miningReward = miningReward;
-  }
-
-  // Genesis block
-  private createGenesisBlock(): Block {
-    return new Block({
-      timestamp: new Date().toLocaleString(),
-      transactions: "Initial block of ChainScript",
-      previousHash: "ChainScript soulkka",
-    });
-  }
-
-  getLatestBlock(): Block {
-    return this.chain[this.chain.length - 1];
-  }
-
-  minePendingTransactions(miningRewardAddress: string) {
-    // add all pending transactions to the newly created block
-    if (this.pendingTransactions.length != 0) {
-        let block = new Block({
-          timestamp: new Date().toLocaleString(),
-          transactions: this.pendingTransactions,
-        });
-        console.log(`Block ${block.index} started mining`);
-        block.mineBlock(this.difficulty);
-        this.chain.push(block);
-    }
-  
-    // add new transaction to the pending list
-    this.pendingTransactions = [
-      new Transaction({
-        fromAddress: null,
-        toAddress: miningRewardAddress,
-        amount: this.miningReward,
-      }),
-    ];
-  }
-
-  createTransaction(transaction: TransactionProps) {
-    this.pendingTransactions.push(transaction);
-  }
-
-  // get the amount in the transactions 
-  getBalanceOfAddress(address: string): number {
-    let balance = 0;
-
-    // One block has multiple transactions
-    for (const block of this.chain) {
-      for (const trans of block.transactions) {
-        // Sent the amount
-        if (trans.fromAddress === address) {
-          balance -= trans.amount;
-        }
-        // Recieved the amount
-        else if (trans.toAddress === address) {
-          balance += trans.amount;
-        }
-      }
-    }
-
-    return balance;
-  }
-
-  // check validity of the chain
-  isChainValid() {
-    for (let i = 1; i < this.chain.length; i++) {
-      const currentBlock = this.chain[i];
-      const previousBlock = this.chain[i - 1];
-
-      // If the data in the block was changed
-      if (currentBlock.hash !== currentBlock.calculateHash()) {
-        return false;
-      }
-
-      // Block integrity in a blockchain
-      if (currentBlock.previousHash !== previousBlock.hash) {
-        return false;
-      }
-    }
-    return true;
-  }
-}
-
-let arikkaCoin = new Blockchain(2,100);
-arikkaCoin.createTransaction(new Transaction({ fromAddress: "address 5", toAddress: "address 8", amount: 9 }));
-arikkaCoin.createTransaction(new Transaction({ fromAddress: "address 8", toAddress: "address 5", amount: 25 }));
+console.log(`Balance of myWalletAddress is : ${arikkaCoin.getBalanceOfAddress(myWalletAddress)}`);
 
 // Usually miners themself take up transactions based on fee it offers to include in new block, here for demo we do that
 console.log("Starting the miner....");
 // The miner who mines, here is selected by us
-arikkaCoin.minePendingTransactions("sarika-address");
+arikkaCoin.minePendingTransactions(myWalletAddress);
 
-console.log(`Balance of sarika is : ${arikkaCoin.getBalanceOfAddress("sarika-address")}`);
+// Mine again to get the reward into the chain
+console.log("Mining again to get the mining reward...");
+arikkaCoin.minePendingTransactions(myWalletAddress);
+
+console.log(`Balance of myWalletAddress is : ${arikkaCoin.getBalanceOfAddress(myWalletAddress)}`);
+
+console.log("Is chain valid? before tampering : ", arikkaCoin.isChainValid());
+
+// Tampering
+arikkaCoin.chain[1].transactions[0].amount = 1;
+console.log("Is chain valid? after tampering : ", arikkaCoin.isChainValid());
+
